@@ -1,0 +1,179 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+<?import javafx.scene.text.*?>
+
+<BorderPane xmlns="http://javafx.com/javafx/17" xmlns:fx="http://javafx.com/fxml/1" 
+            fx:controller="com.contestpredictor.controller.ProfileController"
+            styleClass="profile-root">
+    
+    <!-- Top Navigation Bar -->
+    <top>
+        <HBox styleClass="navbar" alignment="CENTER_LEFT" spacing="20" prefHeight="70">
+            <padding>
+                <Insets top="10" right="30" bottom="10" left="30"/>
+            </padding>
+            
+            <Label text="📊 Contest Rating Predictor" styleClass="navbar-brand">
+                <font>
+                    <Font name="System Bold" size="20"/>
+                </font>
+            </Label>
+            
+            <Region HBox.hgrow="ALWAYS"/>
+            
+            <Button text="Search Contests" styleClass="navbar-button" onAction="#handleSearchContest">
+                <font><Font name="System Bold" size="14"/></font>
+            </Button>
+            
+            <Button text="Predictor" styleClass="navbar-button" onAction="#handlePredictor">
+                <font><Font name="System Bold" size="14"/></font>
+            </Button>
+            
+            <Button text="Logout" styleClass="navbar-button-logout" onAction="#handleLogout">
+                <font><Font name="System Bold" size="14"/></font>
+            </Button>
+        </HBox>
+    </top>
+    
+    <!-- Main Content -->
+    <center>
+        <VBox spacing="30" alignment="TOP_CENTER" styleClass="profile-content">
+            <padding>
+                <Insets top="40" right="40" bottom="40" left="40"/>
+            </padding>
+            
+            <!-- Profile Header -->
+            <VBox spacing="15" alignment="CENTER" styleClass="profile-header">
+                <padding>
+                    <Insets top="30" right="30" bottom="30" left="30"/>
+                </padding>
+                
+                <Label text="👤" styleClass="profile-avatar">
+                    <font>
+                        <Font size="60"/>
+                    </font>
+                </Label>
+                
+                <Label fx:id="fullNameLabel" text="User Name" styleClass="profile-name">
+                    <font>
+                        <Font name="System Bold" size="32"/>
+                    </font>
+                </Label>
+                
+                <Label fx:id="usernameLabel" text="@username" styleClass="profile-username">
+                    <font>
+                        <Font size="16"/>
+                    </font>
+                </Label>
+            </VBox>
+            
+            <!-- Stats Cards -->
+            <HBox spacing="30" alignment="CENTER">
+                <!-- Current Rating Card -->
+                <VBox spacing="10" alignment="CENTER" styleClass="stat-card" prefWidth="250" prefHeight="180">
+                    <padding>
+                        <Insets top="20" right="20" bottom="20" left="20"/>
+                    </padding>
+                    
+                    <Label text="⭐" styleClass="stat-icon">
+                        <font>
+                            <Font size="36"/>
+                        </font>
+                    </Label>
+                    
+                    <Label text="Current Rating" styleClass="stat-label">
+                        <font>
+                            <Font name="System Bold" size="14"/>
+                        </font>
+                    </Label>
+                    
+                    <Label fx:id="ratingLabel" text="1000" styleClass="stat-value">
+                        <font>
+                            <Font name="System Bold" size="36"/>
+                        </font>
+                    </Label>
+                    
+                    <Label fx:id="ratingColorLabel" text="Gray" styleClass="stat-sublabel">
+                        <font>
+                            <Font size="12"/>
+                        </font>
+                    </Label>
+                </VBox>
+                
+                <!-- Contests Participated Card -->
+                <VBox spacing="10" alignment="CENTER" styleClass="stat-card" prefWidth="250" prefHeight="180">
+                    <padding>
+                        <Insets top="20" right="20" bottom="20" left="20"/>
+                    </padding>
+                    
+                    <Label text="🏆" styleClass="stat-icon">
+                        <font>
+                            <Font size="36"/>
+                        </font>
+                    </Label>
+                    
+                    <Label text="Contests" styleClass="stat-label">
+                        <font>
+                            <Font name="System Bold" size="14"/>
+                        </font>
+                    </Label>
+                    
+                    <Label fx:id="contestsLabel" text="0" styleClass="stat-value">
+                        <font>
+                            <Font name="System Bold" size="36"/>
+                        </font>
+                    </Label>
+                    
+                    <Label text="Participated" styleClass="stat-sublabel">
+                        <font>
+                            <Font size="12"/>
+                        </font>
+                    </Label>
+                </VBox>
+                
+                <!-- Max Rating Card -->
+                <VBox spacing="10" alignment="CENTER" styleClass="stat-card" prefWidth="250" prefHeight="180">
+                    <padding>
+                        <Insets top="20" right="20" bottom="20" left="20"/>
+                    </padding>
+                    
+                    <Label text="📈" styleClass="stat-icon">
+                        <font>
+                            <Font size="36"/>
+                        </font>
+                    </Label>
+                    
+                    <Label text="Max Rating" styleClass="stat-label">
+                        <font>
+                            <Font name="System Bold" size="14"/>
+                        </font>
+                    </Label>
+                    
+                    <Label fx:id="maxRatingLabel" text="1000" styleClass="stat-value">
+                        <font>
+                            <Font name="System Bold" size="36"/>
+                        </font>
+                    </Label>
+                    
+                    <Label text="All Time High" styleClass="stat-sublabel">
+                        <font>
+                            <Font size="12"/>
+                        </font>
+                    </Label>
+                </VBox>
+            </HBox>
+            
+            <!-- Quick Actions -->
+            <HBox spacing="20" alignment="CENTER">
+                <Button text="🎯 Predict Rating" styleClass="action-button-primary" onAction="#handlePredictor" prefWidth="200" prefHeight="50">
+                    <font>
+                        <Font name="System Bold" size="16"/>
+                    </font>
+                </Button>
+            </HBox>
+        </VBox>
+    </center>
+</BorderPane>
