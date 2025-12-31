@@ -18,6 +18,17 @@ public class Participant {
         this.predictedRating = currentRating;
         this.ratingChange = 0;
     }
+    
+    // Constructor with rank parameter
+    public Participant(String username, int currentRating, int problemsSolved, int totalPenalty, int rank) {
+        this.username = username;
+        this.currentRating = currentRating;
+        this.problemsSolved = problemsSolved;
+        this.totalPenalty = totalPenalty;
+        this.rank = rank;
+        this.predictedRating = currentRating;
+        this.ratingChange = 0;
+    }
 
     // Getters and Setters
     public String getUsername() {

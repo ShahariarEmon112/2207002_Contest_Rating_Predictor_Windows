@@ -6,7 +6,6 @@ import com.contestpredictor.data.UserDatabase;
 import com.contestpredictor.model.Contest;
 import com.contestpredictor.model.Participant;
 import com.contestpredictor.model.User;
-import javafx.beans.property.SimpleStringProperty;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.fxml.FXML;

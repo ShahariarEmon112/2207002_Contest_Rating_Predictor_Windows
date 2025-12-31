@@ -127,6 +127,7 @@ public class RatingPredictor {
     /**
      * Calculate seed (Codeforces-style expected rank)
      */
+    @SuppressWarnings("unused")
     private static double calculateSeed(int rating, double avgRating, int totalParticipants) {
         double seed = 1.0;
         for (int i = 0; i < totalParticipants; i++) {
@@ -140,6 +141,7 @@ public class RatingPredictor {
     /**
      * Calculate the rating you "need" to achieve a specific rank
      */
+    @SuppressWarnings("unused")
     private static double calculateNeedRating(int rank, int totalParticipants, double avgRating) {
         double percentile = (double)(totalParticipants - rank + 1) / (double)totalParticipants;
         

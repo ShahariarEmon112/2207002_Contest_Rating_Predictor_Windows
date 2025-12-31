@@ -26,7 +26,7 @@ public class ContestantRatingPredictor {
      * @return List of contestants with their current ratings
      */
     public static List<Contestant> fetchContestants(int limit) throws Exception {
-        URL url = new URL(CODEFORCES_API_URL);
+        URL url = new java.net.URI(CODEFORCES_API_URL).toURL();
         HttpURLConnection conn = (HttpURLConnection) url.openConnection();
         conn.setRequestMethod("GET");
         conn.setConnectTimeout(10000);

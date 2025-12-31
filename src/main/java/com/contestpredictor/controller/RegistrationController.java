@@ -95,7 +95,7 @@ public class RegistrationController {
         boolean success;
         if (isAdmin) {
             AdminDatabase adminDB = AdminDatabase.getInstance();
-            success = adminDB.registerAdmin(username, password, fullName, email);
+            success = adminDB.registerAdmin(username, password, fullName);
             if (success) {
                 showSuccess("Admin account created successfully! Redirecting to login...");
             } else {

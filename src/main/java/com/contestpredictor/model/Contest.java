@@ -79,6 +79,11 @@ public class Contest {
     public String getContestName() {
         return contestName;
     }
+    
+    // Alias method for getName()
+    public String getName() {
+        return contestName;
+    }
 
     public void setContestName(String contestName) {
         this.contestName = contestName;

@@ -6,7 +6,6 @@ import com.contestpredictor.model.Contest;
 import com.contestpredictor.model.Participant;
 import com.contestpredictor.model.User;
 
-import javafx.beans.value.ObservableValue;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.geometry.Insets;
@@ -14,11 +13,8 @@ import javafx.geometry.Pos;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.scene.control.*;
-import javafx.scene.control.TableColumn.CellDataFeatures;
 import javafx.scene.layout.*;
-import javafx.scene.text.Font;
 import javafx.stage.Stage;
-import javafx.util.Callback;
 
 import java.time.format.DateTimeFormatter;
 import java.util.List;
@@ -356,7 +352,9 @@ public class ContestSearchController {
         });
         
         // Add columns to table
-        table.getColumns().addAll(rankCol, usernameCol, ratingCol, solvedCol, penaltyCol, performanceCol, changeCol);
+        @SuppressWarnings("unchecked")
+        TableColumn<Participant, ?>[] columns = new TableColumn[]{rankCol, usernameCol, ratingCol, solvedCol, penaltyCol, performanceCol, changeCol};
+        table.getColumns().addAll(columns);
         
         // Add participants to table
         if (!contest.getParticipants().isEmpty()) {
