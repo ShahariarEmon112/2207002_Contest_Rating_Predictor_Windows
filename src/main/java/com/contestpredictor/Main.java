@@ -1,5 +1,6 @@
 package com.contestpredictor;
 
+import com.contestpredictor.data.DatabaseManager;
 import javafx.application.Application;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Parent;
@@ -12,6 +13,12 @@ public class Main extends Application {
     public void start(Stage primaryStage) {
         try {
             System.out.println("Starting Contest Rating Predictor...");
+            
+            // Initialize database and create tables
+            System.out.println("Initializing database...");
+            DatabaseManager.getInstance();
+            System.out.println("Database initialized successfully!");
+            
             System.out.println("Loading FXML file: /fxml/Login.fxml");
             
             // Check if FXML file exists

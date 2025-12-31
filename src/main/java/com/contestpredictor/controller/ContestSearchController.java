@@ -234,6 +234,20 @@ public class ContestSearchController {
         // Separator
         javafx.scene.control.Separator separator = new javafx.scene.control.Separator();
         
+        if (contest.isPast()) {
+            // Show standings for past contests
+            showPastContestStandings(mainContainer, contest, titleLabel, infoLabel, separator, detailsStage);
+        } else {
+            // Show registration for upcoming contests
+            showUpcomingContestRegistration(mainContainer, contest, titleLabel, infoLabel, separator, detailsStage);
+        }
+    }
+    
+    /**
+     * Display standings table for past contests
+     */
+    private void showPastContestStandings(VBox mainContainer, Contest contest, Label titleLabel, 
+                                          Label infoLabel, javafx.scene.control.Separator separator, Stage detailsStage) {
         // Rankings section
         Label rankingsLabel = new Label("Contest Standings (" + contest.getParticipants().size() + " participants)");
         rankingsLabel.setStyle("-fx-font-size: 18px; -fx-font-weight: bold; -fx-text-fill: #667eea;");
@@ -242,11 +256,11 @@ public class ContestSearchController {
         javafx.scene.control.TableView<com.contestpredictor.model.Participant> table = new javafx.scene.control.TableView<>();
         table.setPrefHeight(450);
         table.setStyle("-fx-background-color: white; -fx-border-color: #e0e0e0; -fx-border-radius: 8;");
+        table.setEditable(true); // Make table editable
         
         // Rank column
         javafx.scene.control.TableColumn<com.contestpredictor.model.Participant, Integer> rankCol = 
             new javafx.scene.control.TableColumn<>("Rank");
-        rankCol.setCellValueFactory((Callback<CellDataFeatures<Participant, Integer>, ObservableValue<Integer>>) new javafx.beans.property.SimpleIntegerProperty(0).asObject());
         rankCol.setCellValueFactory(cellData -> 
             new javafx.beans.property.SimpleIntegerProperty(cellData.getValue().getRank()).asObject());
         rankCol.setPrefWidth(60);
@@ -257,7 +271,7 @@ public class ContestSearchController {
             new javafx.scene.control.TableColumn<>("Username");
         usernameCol.setCellValueFactory(cellData -> 
             new javafx.beans.property.SimpleStringProperty(cellData.getValue().getUsername()));
-        usernameCol.setPrefWidth(180);
+        usernameCol.setPrefWidth(150);
         
         // Rating column
         javafx.scene.control.TableColumn<com.contestpredictor.model.Participant, Integer> ratingCol = 
@@ -267,21 +281,37 @@ public class ContestSearchController {
         ratingCol.setPrefWidth(80);
         ratingCol.setStyle("-fx-alignment: CENTER;");
         
-        // Problems solved column
+        // Problems solved column (EDITABLE)
         javafx.scene.control.TableColumn<com.contestpredictor.model.Participant, Integer> solvedCol = 
             new javafx.scene.control.TableColumn<>("Solved");
         solvedCol.setCellValueFactory(cellData -> 
             new javafx.beans.property.SimpleIntegerProperty(cellData.getValue().getProblemsSolved()).asObject());
         solvedCol.setPrefWidth(70);
         solvedCol.setStyle("-fx-alignment: CENTER;");
+        solvedCol.setCellFactory(javafx.scene.control.cell.TextFieldTableCell.forTableColumn(new javafx.util.converter.IntegerStringConverter()));
+        solvedCol.setEditable(true);
+        solvedCol.setOnEditCommit(event -> {
+            Participant p = event.getRowValue();
+            p.setProblemsSolved(event.getNewValue());
+            recalculateContestStandings(contest);
+            table.refresh();
+        });
         
-        // Penalty column
+        // Penalty column (EDITABLE)
         javafx.scene.control.TableColumn<com.contestpredictor.model.Participant, Integer> penaltyCol = 
             new javafx.scene.control.TableColumn<>("Penalty");
         penaltyCol.setCellValueFactory(cellData -> 
             new javafx.beans.property.SimpleIntegerProperty(cellData.getValue().getTotalPenalty()).asObject());
         penaltyCol.setPrefWidth(80);
         penaltyCol.setStyle("-fx-alignment: CENTER;");
+        penaltyCol.setCellFactory(javafx.scene.control.cell.TextFieldTableCell.forTableColumn(new javafx.util.converter.IntegerStringConverter()));
+        penaltyCol.setEditable(true);
+        penaltyCol.setOnEditCommit(event -> {
+            Participant p = event.getRowValue();
+            p.setTotalPenalty(event.getNewValue());
+            recalculateContestStandings(contest);
+            table.refresh();
+        });
         
         // Performance (New Rating) column
         javafx.scene.control.TableColumn<com.contestpredictor.model.Participant, Integer> performanceCol = 
@@ -291,7 +321,7 @@ public class ContestSearchController {
         performanceCol.setPrefWidth(100);
         performanceCol.setStyle("-fx-alignment: CENTER;");
         
-        // Rating change column
+        // Rating change column with color coding
         javafx.scene.control.TableColumn<com.contestpredictor.model.Participant, String> changeCol = 
             new javafx.scene.control.TableColumn<>("Δ Rating");
         changeCol.setCellValueFactory(cellData -> {
@@ -329,18 +359,13 @@ public class ContestSearchController {
         table.getColumns().addAll(rankCol, usernameCol, ratingCol, solvedCol, penaltyCol, performanceCol, changeCol);
         
         // Add participants to table
-        if (contest.isPast() && !contest.getParticipants().isEmpty()) {
+        if (!contest.getParticipants().isEmpty()) {
             table.getItems().addAll(contest.getParticipants());
-        } else {
-            Label noDataLabel = new Label("No standings data available for upcoming contests");
-            noDataLabel.setStyle("-fx-text-fill: #999; -fx-font-size: 14px;");
-            mainContainer.getChildren().addAll(titleLabel, infoLabel, separator, noDataLabel);
-            
-            Scene scene = new Scene(mainContainer, 800, 400);
-            detailsStage.setScene(scene);
-            detailsStage.show();
-            return;
         }
+        
+        // Info label for editing
+        Label editInfo = new Label("💡 Tip: Double-click 'Solved' or 'Penalty' cells to edit. Rankings update automatically!");
+        editInfo.setStyle("-fx-text-fill: #2196F3; -fx-font-size: 12px; -fx-font-style: italic;");
         
         // Close button
         Button closeButton = new Button("Close");
@@ -353,12 +378,149 @@ public class ContestSearchController {
         buttonBox.setAlignment(Pos.CENTER);
         
         // Add all to main container
-        mainContainer.getChildren().addAll(titleLabel, infoLabel, separator, rankingsLabel, table, buttonBox);
+        mainContainer.getChildren().addAll(titleLabel, infoLabel, separator, rankingsLabel, table, editInfo, buttonBox);
         
         // Create scene and show
         Scene scene = new Scene(mainContainer, 900, 700);
         detailsStage.setScene(scene);
         detailsStage.show();
+    }
+    
+    /**
+     * Display registration form for upcoming contests
+     */
+    private void showUpcomingContestRegistration(VBox mainContainer, Contest contest, Label titleLabel,
+                                                  Label infoLabel, javafx.scene.control.Separator separator, Stage detailsStage) {
+        Label upcomingLabel = new Label("📅 This contest is upcoming. Register now!");
+        upcomingLabel.setStyle("-fx-font-size: 18px; -fx-font-weight: bold; -fx-text-fill: #667eea;");
+        
+        // Registration info
+        VBox regBox = new VBox(15);
+        regBox.setStyle("-fx-background-color: white; -fx-padding: 20; -fx-background-radius: 10; -fx-border-color: #e0e0e0; -fx-border-radius: 10;");
+        regBox.setMaxWidth(500);
+        
+        Label regTitle = new Label("Contest Registration");
+        regTitle.setStyle("-fx-font-size: 16px; -fx-font-weight: bold;");
+        
+        Label regInfo = new Label("You are registering as: " + (currentUser != null ? currentUser.getUsername() : "Guest"));
+        regInfo.setStyle("-fx-font-size: 14px; -fx-text-fill: #666;");
+        
+        Label statusLabel = new Label("");
+        statusLabel.setStyle("-fx-font-size: 14px;");
+        
+        // Registration button
+        Button registerButton = new Button("Register for Contest");
+        registerButton.setStyle("-fx-background-color: #4CAF50; -fx-text-fill: white; -fx-font-size: 16px; -fx-padding: 12 40; -fx-background-radius: 8; -fx-cursor: hand;");
+        registerButton.setOnMouseEntered(e -> registerButton.setStyle("-fx-background-color: #45a049; -fx-text-fill: white; -fx-font-size: 16px; -fx-padding: 12 40; -fx-background-radius: 8; -fx-cursor: hand;"));
+        registerButton.setOnMouseExited(e -> registerButton.setStyle("-fx-background-color: #4CAF50; -fx-text-fill: white; -fx-font-size: 16px; -fx-padding: 12 40; -fx-background-radius: 8; -fx-cursor: hand;"));
+        registerButton.setOnAction(e -> {
+            if (currentUser != null) {
+                // Add user to contest participants
+                Participant newParticipant = new Participant(
+                    currentUser.getUsername(),
+                    currentUser.getCurrentRating(),
+                    0, 0
+                );
+                contest.addParticipant(newParticipant);
+                statusLabel.setText("✅ Successfully registered for " + contest.getContestName());
+                statusLabel.setStyle("-fx-font-size: 14px; -fx-text-fill: #4CAF50; -fx-font-weight: bold;");
+                registerButton.setDisable(true);
+            } else {
+                statusLabel.setText("❌ Please login to register");
+                statusLabel.setStyle("-fx-font-size: 14px; -fx-text-fill: #f44336;");
+            }
+        });
+        
+        regBox.getChildren().addAll(regTitle, regInfo, registerButton, statusLabel);
+        regBox.setAlignment(Pos.CENTER);
+        
+        // Contest details
+        Label detailsLabel = new Label("Contest Details");
+        detailsLabel.setStyle("-fx-font-size: 16px; -fx-font-weight: bold; -fx-text-fill: #1a237e;");
+        
+        VBox detailsBox = new VBox(8);
+        detailsBox.setStyle("-fx-background-color: white; -fx-padding: 15; -fx-background-radius: 10;");
+        detailsBox.getChildren().addAll(
+            createDetailRow("Max Participants:", String.valueOf(contest.getMaxParticipants())),
+            createDetailRow("Current Registrations:", String.valueOf(contest.getParticipants().size())),
+            createDetailRow("Spots Available:", String.valueOf(contest.getMaxParticipants() - contest.getParticipants().size()))
+        );
+        
+        // Close button
+        Button closeButton = new Button("Close");
+        closeButton.setStyle("-fx-background-color: #3B82F6; -fx-text-fill: white; -fx-font-size: 14px; -fx-padding: 10 30; -fx-background-radius: 8; -fx-cursor: hand;");
+        closeButton.setOnMouseEntered(e -> closeButton.setStyle("-fx-background-color: #2563EB; -fx-text-fill: white; -fx-font-size: 14px; -fx-padding: 10 30; -fx-background-radius: 8; -fx-cursor: hand;"));
+        closeButton.setOnMouseExited(e -> closeButton.setStyle("-fx-background-color: #3B82F6; -fx-text-fill: white; -fx-font-size: 14px; -fx-padding: 10 30; -fx-background-radius: 8; -fx-cursor: hand;"));
+        closeButton.setOnAction(e -> detailsStage.close());
+        
+        HBox buttonBox = new HBox(closeButton);
+        buttonBox.setAlignment(Pos.CENTER);
+        
+        // Add all to main container
+        mainContainer.getChildren().addAll(titleLabel, infoLabel, separator, upcomingLabel, regBox, detailsLabel, detailsBox, buttonBox);
+        mainContainer.setAlignment(Pos.TOP_CENTER);
+        
+        // Create scene and show
+        Scene scene = new Scene(mainContainer, 800, 650);
+        detailsStage.setScene(scene);
+        detailsStage.show();
+    }
+    
+    /**
+     * Creates a detail row for contest information
+     */
+    private HBox createDetailRow(String label, String value) {
+        HBox row = new HBox(10);
+        row.setAlignment(Pos.CENTER_LEFT);
+        Label lblLabel = new Label(label);
+        lblLabel.setStyle("-fx-font-weight: bold; -fx-min-width: 180px;");
+        Label lblValue = new Label(value);
+        lblValue.setStyle("-fx-text-fill: #666;");
+        row.getChildren().addAll(lblLabel, lblValue);
+        return row;
+    }
+    
+    /**
+     * Recalculates contest standings when participant data changes
+     * Uses AtCoder-style formula
+     */
+    private void recalculateContestStandings(Contest contest) {
+        List<Participant> participants = contest.getParticipants();
+        if (participants.isEmpty()) return;
+        
+        // Sort by problems solved (desc), then by penalty (asc)
+        participants.sort((a, b) -> {
+            if (a.getProblemsSolved() != b.getProblemsSolved()) {
+                return b.getProblemsSolved() - a.getProblemsSolved();
+            }
+            return a.getTotalPenalty() - b.getTotalPenalty();
+        });
+        
+        // Assign ranks
+        for (int i = 0; i < participants.size(); i++) {
+            participants.get(i).setRank(i + 1);
+        }
+        
+        // Calculate average rating
+        double avgRating = participants.stream()
+            .mapToInt(Participant::getCurrentRating)
+            .average()
+            .orElse(1500.0);
+        
+        int totalParticipants = participants.size();
+        
+        // Calculate rating changes using AtCoder formula
+        for (Participant p : participants) {
+            // Performance = avgRating + 400 * log2(N / rank)
+            int performance = (int) Math.round(avgRating + 400.0 * (Math.log(totalParticipants / (double) p.getRank()) / Math.log(2)));
+            p.setPredictedRating(performance);
+            
+            // Rating change with adjustment factor
+            int contestCount = 10; // Assume average
+            double adjustmentFactor = contestCount <= 10 ? 0.9 - (contestCount * 0.05) : 0.2;
+            int ratingChange = (int) Math.round((performance - p.getCurrentRating()) * adjustmentFactor);
+            p.setRatingChange(ratingChange);
+        }
     }
 
     @FXML
@@ -386,17 +548,28 @@ public class ContestSearchController {
             FXMLLoader loader = new FXMLLoader(getClass().getResource(fxmlPath));
             Parent root = loader.load();
             
-            Scene scene;
-            if (fxmlPath.contains("Login")) {
-                scene = new Scene(root, 1000, 650);
-            } else {
-                scene = new Scene(root, 1200, 800);
-            }
+            Stage stage = (Stage) searchField.getScene().getWindow();
+            
+            // Preserve window state
+            boolean wasFullScreen = stage.isFullScreen();
+            boolean wasMaximized = stage.isMaximized();
+            double currentWidth = stage.getWidth();
+            double currentHeight = stage.getHeight();
+            
+            Scene scene = new Scene(root, currentWidth, currentHeight);
             scene.getStylesheets().add(getClass().getResource("/css/styles.css").toExternalForm());
             
-            Stage stage = (Stage) searchField.getScene().getWindow();
             stage.setScene(scene);
             stage.setTitle(title + " - Contest Rating Predictor");
+            
+            // Restore window state
+            if (wasMaximized) {
+                stage.setMaximized(true);
+            }
+            if (wasFullScreen) {
+                stage.setFullScreen(true);
+            }
+            
             System.out.println("Navigation successful");
         } catch (Exception e) {
             System.err.println("Navigation error:");

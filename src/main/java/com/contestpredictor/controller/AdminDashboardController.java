@@ -1,8 +1,14 @@
 package com.contestpredictor.controller;
 
 import com.contestpredictor.data.ContestDatabase;
+import com.contestpredictor.data.DatabaseManager;
+import com.contestpredictor.data.UserDatabase;
 import com.contestpredictor.model.Admin;
 import com.contestpredictor.model.Contest;
+import com.contestpredictor.model.Participant;
+import com.contestpredictor.model.User;
+import javafx.collections.FXCollections;
+import javafx.collections.ObservableList;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Parent;
@@ -10,16 +16,20 @@ import javafx.scene.Scene;
 import javafx.scene.control.*;
 import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.stage.Stage;
-import javafx.collections.FXCollections;
-import javafx.collections.ObservableList;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
+import java.util.List;
+import java.util.Optional;
 
+/**
+ * Enhanced AdminDashboardController with participant management
+ */
 public class AdminDashboardController {
     
+    // Header Elements
     @FXML private Label adminNameLabel;
     @FXML private Button logoutButton;
     
@@ -38,46 +48,53 @@ public class AdminDashboardController {
     @FXML private TableColumn<Contest, String> contestNameColumn;
     @FXML private TableColumn<Contest, String> dateTimeColumn;
     @FXML private TableColumn<Contest, Integer> durationColumn;
-    @FXML private TableColumn<Contest, Integer> registrationsColumn;
     @FXML private TableColumn<Contest, String> statusColumn;
     @FXML private TableColumn<Contest, Void> actionsColumn;
     
-    // Registrations Section
-    @FXML private ComboBox<String> contestSelector;
-    @FXML private Label registrationCountLabel;
-    @FXML private TableView<?> registrationsTable;
-    @FXML private TableColumn<?, String> usernameColumn;
-    @FXML private TableColumn<?, String> registeredAtColumn;
-    @FXML private TableColumn<?, Void> userActionsColumn;
+    // Participants Management
+    @FXML private ComboBox<String> participantContestSelector;
+    @FXML private TextField addParticipantUsernameField;
+    @FXML private Label addParticipantStatusLabel;
+    @FXML private Label participantCountLabel;
+    @FXML private TableView<Participant> participantsTable;
+    @FXML private TableColumn<Participant, String> participantUsernameColumn;
+    @FXML private TableColumn<Participant, Integer> participantRatingColumn;
+    @FXML private TableColumn<Participant, Integer> participantSolvedColumn;
+    @FXML private TableColumn<Participant, Integer> participantPenaltyColumn;
+    @FXML private TableColumn<Participant, Integer> participantRankColumn;
+    @FXML private TableColumn<Participant, Void> participantActionsColumn;
     
     // Statistics
     @FXML private Label totalContestsLabel;
     @FXML private Label totalUsersLabel;
-    @FXML private Label activeContestsLabel;
-    @FXML private Label totalRegistrationsLabel;
+    @FXML private Label futureContestsLabel;
+    @FXML private Label totalParticipantsLabel;
     
     private Admin currentAdmin;
+    private String selectedContestId;
     
     @FXML
     public void initialize() {
-        // Set default values
-        maxParticipantsField.setText("1000");
-        contestDatePicker.setValue(LocalDate.now());
-        
-        // Initialize table columns
-        setupTableColumns();
-        
-        loadContests();
-        updateStatistics();
-        
-        // Set admin name if already set
-        if (currentAdmin != null && adminNameLabel != null) {
-            adminNameLabel.setText("Welcome, " + currentAdmin.getFullName());
+        try {
+            // Set default values
+            if (maxParticipantsField != null) {
+                maxParticipantsField.setText("1000");
+            }
+            if (contestDatePicker != null) {
+                contestDatePicker.setValue(LocalDate.now());
+            }
+            
+            // Initialize table columns
+            setupContestsTableColumns();
+            setupParticipantsTableColumns();
+            
+        } catch (Exception e) {
+            System.err.println("Error during initialization: " + e.getMessage());
+            e.printStackTrace();
         }
     }
     
-    private void setupTableColumns() {
-        // Setup contests table columns
+    private void setupContestsTableColumns() {
         if (contestIdColumn != null) {
             contestIdColumn.setCellValueFactory(new PropertyValueFactory<>("contestId"));
         }
@@ -94,16 +111,75 @@ public class AdminDashboardController {
         if (durationColumn != null) {
             durationColumn.setCellValueFactory(new PropertyValueFactory<>("duration"));
         }
-        if (registrationsColumn != null) {
-            registrationsColumn.setCellValueFactory(cellData -> {
-                return new javafx.beans.property.SimpleIntegerProperty(0).asObject();
-            });
-        }
         if (statusColumn != null) {
             statusColumn.setCellValueFactory(cellData -> {
                 Contest contest = cellData.getValue();
-                String status = contest.isPast() ? "Past" : "Upcoming";
+                String status = contest.isPast() ? "Past" : "Future";
                 return new javafx.beans.property.SimpleStringProperty(status);
+            });
+        }
+        if (actionsColumn != null) {
+            actionsColumn.setCellFactory(param -> new TableCell<>() {
+                private final Button deleteBtn = new Button("Delete");
+                
+                {
+                    deleteBtn.setStyle("-fx-background-color: #f44336; -fx-text-fill: white; -fx-cursor: hand;");
+                    deleteBtn.setOnAction(event -> {
+                        Contest contest = getTableView().getItems().get(getIndex());
+                        handleDeleteContest(contest);
+                    });
+                }
+                
+                @Override
+                protected void updateItem(Void item, boolean empty) {
+                    super.updateItem(item, empty);
+                    if (empty) {
+                        setGraphic(null);
+                    } else {
+                        setGraphic(deleteBtn);
+                    }
+                }
+            });
+        }
+    }
+    
+    private void setupParticipantsTableColumns() {
+        if (participantUsernameColumn != null) {
+            participantUsernameColumn.setCellValueFactory(new PropertyValueFactory<>("username"));
+        }
+        if (participantRatingColumn != null) {
+            participantRatingColumn.setCellValueFactory(new PropertyValueFactory<>("currentRating"));
+        }
+        if (participantSolvedColumn != null) {
+            participantSolvedColumn.setCellValueFactory(new PropertyValueFactory<>("problemsSolved"));
+        }
+        if (participantPenaltyColumn != null) {
+            participantPenaltyColumn.setCellValueFactory(new PropertyValueFactory<>("totalPenalty"));
+        }
+        if (participantRankColumn != null) {
+            participantRankColumn.setCellValueFactory(new PropertyValueFactory<>("rank"));
+        }
+        if (participantActionsColumn != null) {
+            participantActionsColumn.setCellFactory(param -> new TableCell<>() {
+                private final Button removeBtn = new Button("Remove");
+                
+                {
+                    removeBtn.setStyle("-fx-background-color: #f44336; -fx-text-fill: white; -fx-cursor: hand;");
+                    removeBtn.setOnAction(event -> {
+                        Participant participant = getTableView().getItems().get(getIndex());
+                        handleRemoveParticipant(participant);
+                    });
+                }
+                
+                @Override
+                protected void updateItem(Void item, boolean empty) {
+                    super.updateItem(item, empty);
+                    if (empty) {
+                        setGraphic(null);
+                    } else {
+                        setGraphic(removeBtn);
+                    }
+                }
             });
         }
     }
@@ -111,7 +187,17 @@ public class AdminDashboardController {
     public void setAdmin(Admin admin) {
         this.currentAdmin = admin;
         if (adminNameLabel != null) {
-            adminNameLabel.setText("Welcome, " + admin.getFullName());
+            adminNameLabel.setText(admin.getFullName());
+        }
+        
+        // Load initial data
+        try {
+            loadContests();
+            loadContestSelectors();
+            updateStatistics();
+        } catch (Exception e) {
+            System.err.println("Error loading data after setting admin: " + e.getMessage());
+            e.printStackTrace();
         }
     }
     
@@ -158,6 +244,7 @@ public class AdminDashboardController {
                 contestStatusLabel.setStyle("-fx-text-fill: #4CAF50;");
                 handleClearForm();
                 loadContests();
+                loadContestSelectors();
                 updateStatistics();
             } else {
                 showAlert("Error", "Failed to create contest. Contest ID may already exist.");
@@ -167,6 +254,7 @@ public class AdminDashboardController {
             showAlert("Invalid Input", "Duration and Max Participants must be valid numbers");
         } catch (Exception e) {
             showAlert("Error", "Failed to create contest: " + e.getMessage());
+            e.printStackTrace();
         }
     }
     
@@ -181,9 +269,130 @@ public class AdminDashboardController {
     }
     
     @FXML
-    private void handleViewRegistrations() {
-        // Placeholder - will be implemented with contest registration
-        showInfo("Coming Soon", "Contest registration viewing will be available soon");
+    private void handleLoadParticipants() {
+        selectedContestId = participantContestSelector.getValue();
+        if (selectedContestId == null || selectedContestId.isEmpty()) {
+            showAlert("Selection Required", "Please select a contest first");
+            return;
+        }
+        
+        try {
+            DatabaseManager dbManager = DatabaseManager.getInstance();
+            List<Participant> participants = dbManager.getParticipantsByContest(selectedContestId);
+            
+            ObservableList<Participant> participantList = FXCollections.observableArrayList(participants);
+            participantsTable.setItems(participantList);
+            participantCountLabel.setText("(" + participants.size() + " participants)");
+            
+        } catch (Exception e) {
+            showAlert("Error", "Failed to load participants: " + e.getMessage());
+            e.printStackTrace();
+        }
+    }
+    
+    @FXML
+    private void handleAddParticipant() {
+        if (selectedContestId == null || selectedContestId.isEmpty()) {
+            showInfo("Selection Required", "Please select a contest and click 'Load Participants' first");
+            return;
+        }
+        
+        String username = addParticipantUsernameField.getText().trim();
+        if (username.isEmpty()) {
+            showAlert("Input Required", "Please enter a username");
+            return;
+        }
+        
+        try {
+            // Check if user exists
+            UserDatabase userDB = UserDatabase.getInstance();
+            User user = userDB.getUserByUsername(username);
+            
+            if (user == null) {
+                showAlert("User Not Found", "User '" + username + "' does not exist in the system");
+                return;
+            }
+            
+            // Create participant
+            Participant participant = new Participant(
+                username,
+                user.getCurrentRating(),
+                0, // problems solved
+                0, // penalty
+                0  // rank
+            );
+            
+            // Save to database
+            DatabaseManager dbManager = DatabaseManager.getInstance();
+            boolean success = dbManager.saveParticipant(selectedContestId, participant);
+            
+            if (success) {
+                addParticipantStatusLabel.setText("✓ Participant added successfully!");
+                addParticipantStatusLabel.setStyle("-fx-text-fill: #4CAF50;");
+                addParticipantUsernameField.clear();
+                handleLoadParticipants();
+                updateStatistics();
+            } else {
+                showAlert("Error", "Failed to add participant. They may already be registered.");
+            }
+            
+        } catch (Exception e) {
+            showAlert("Error", "Failed to add participant: " + e.getMessage());
+            e.printStackTrace();
+        }
+    }
+    
+    private void handleRemoveParticipant(Participant participant) {
+        Alert confirmDialog = new Alert(Alert.AlertType.CONFIRMATION);
+        confirmDialog.setTitle("Confirm Removal");
+        confirmDialog.setHeaderText("Remove Participant");
+        confirmDialog.setContentText("Are you sure you want to remove " + participant.getUsername() + " from this contest?");
+        
+        Optional<ButtonType> result = confirmDialog.showAndWait();
+        if (result.isPresent() && result.get() == ButtonType.OK) {
+            try {
+                DatabaseManager dbManager = DatabaseManager.getInstance();
+                boolean success = dbManager.removeParticipant(selectedContestId, participant.getUsername());
+                
+                if (success) {
+                    showInfo("Success", "Participant removed successfully");
+                    handleLoadParticipants();
+                    updateStatistics();
+                } else {
+                    showAlert("Error", "Failed to remove participant");
+                }
+            } catch (Exception e) {
+                showAlert("Error", "Failed to remove participant: " + e.getMessage());
+                e.printStackTrace();
+            }
+        }
+    }
+    
+    private void handleDeleteContest(Contest contest) {
+        Alert confirmDialog = new Alert(Alert.AlertType.CONFIRMATION);
+        confirmDialog.setTitle("Confirm Deletion");
+        confirmDialog.setHeaderText("Delete Contest");
+        confirmDialog.setContentText("Are you sure you want to delete contest: " + contest.getName() + "?");
+        
+        Optional<ButtonType> result = confirmDialog.showAndWait();
+        if (result.isPresent() && result.get() == ButtonType.OK) {
+            try {
+                ContestDatabase contestDB = ContestDatabase.getInstance();
+                boolean success = contestDB.deleteContest(contest.getContestId());
+                
+                if (success) {
+                    showInfo("Success", "Contest deleted successfully");
+                    loadContests();
+                    loadContestSelectors();
+                    updateStatistics();
+                } else {
+                    showAlert("Error", "Failed to delete contest");
+                }
+            } catch (Exception e) {
+                showAlert("Error", "Failed to delete contest: " + e.getMessage());
+                e.printStackTrace();
+            }
+        }
     }
     
     @FXML
@@ -227,18 +436,10 @@ public class AdminDashboardController {
     private void loadContests() {
         try {
             ContestDatabase contestDB = ContestDatabase.getInstance();
-            var contests = contestDB.getAllContests();
+            List<Contest> contests = contestDB.getAllContests();
             
-            // Populate the contests table
-            if (contestsTable != null) {
-                ObservableList<Contest> contestList = FXCollections.observableArrayList(contests);
-                contestsTable.setItems(contestList);
-            }
-            
-            // Update total contests label
-            if (totalContestsLabel != null) {
-                totalContestsLabel.setText(String.valueOf(contests.size()));
-            }
+            ObservableList<Contest> contestList = FXCollections.observableArrayList(contests);
+            contestsTable.setItems(contestList);
             
         } catch (Exception e) {
             System.err.println("Error loading contests: " + e.getMessage());
@@ -246,24 +447,67 @@ public class AdminDashboardController {
         }
     }
     
+    private void loadContestSelectors() {
+        try {
+            ContestDatabase contestDB = ContestDatabase.getInstance();
+            List<Contest> contests = contestDB.getAllContests();
+            
+            ObservableList<String> contestIds = FXCollections.observableArrayList();
+            for (Contest contest : contests) {
+                contestIds.add(contest.getContestId() + " - " + contest.getName());
+            }
+            
+            if (participantContestSelector != null) {
+                participantContestSelector.setItems(contestIds);
+                participantContestSelector.setOnAction(event -> {
+                    String selected = participantContestSelector.getValue();
+                    if (selected != null) {
+                        selectedContestId = selected.split(" - ")[0];
+                    }
+                });
+            }
+            
+        } catch (Exception e) {
+            System.err.println("Error loading contest selectors: " + e.getMessage());
+            e.printStackTrace();
+        }
+    }
+    
     private void updateStatistics() {
         try {
             ContestDatabase contestDB = ContestDatabase.getInstance();
-            var allContests = contestDB.getAllContests();
+            UserDatabase userDB = UserDatabase.getInstance();
+            DatabaseManager dbManager = DatabaseManager.getInstance();
             
-            totalContestsLabel.setText(String.valueOf(allContests.size()));
+            List<Contest> allContests = contestDB.getAllContests();
             
-            long activeCount = allContests.stream()
-                .filter(c -> !c.isPast())
-                .count();
-            activeContestsLabel.setText(String.valueOf(activeCount));
+            if (totalContestsLabel != null) {
+                totalContestsLabel.setText(String.valueOf(allContests.size()));
+            }
             
-            // These would need proper database queries
-            totalUsersLabel.setText("0"); // Placeholder
-            totalRegistrationsLabel.setText("0"); // Placeholder
+            long futureCount = allContests.stream().filter(c -> !c.isPast()).count();
+            if (futureContestsLabel != null) {
+                futureContestsLabel.setText(String.valueOf(futureCount));
+            }
+            
+            // Count total users
+            if (totalUsersLabel != null) {
+                int userCount = userDB.getAllUsers().size();
+                totalUsersLabel.setText(String.valueOf(userCount));
+            }
+            
+            // Count total participants across all contests
+            if (totalParticipantsLabel != null) {
+                int totalParticipants = 0;
+                for (Contest contest : allContests) {
+                    totalParticipants += dbManager.getParticipantsByContest(contest.getContestId()).size();
+                }
+                totalParticipantsLabel.setText(String.valueOf(totalParticipants));
+            }
             
         } catch (Exception e) {
             System.err.println("Error updating statistics: " + e.getMessage());
+            e.printStackTrace();
         }
     }
     

@@ -17,8 +17,9 @@
                 <Region HBox.hgrow="ALWAYS"/>
                 <Label fx:id="adminNameLabel" text="Admin" style="-fx-text-fill: white; -fx-font-size: 16; -fx-font-weight: bold;"/>
                 <Button fx:id="logoutButton" text="Logout" onAction="#handleLogout" 
-                        style="-fx-background-color: white; -fx-text-fill: #ff9800; -fx-font-weight: bold; -fx-background-radius: 5; -fx-cursor: hand;"/>
+                        style="-fx-background-color: white; -fx-text-fill: #ff9800; -fx-font-weight: bold; -fx-background-radius: 5; -fx-cursor: hand; -fx-padding: 10 20;"/>
             </HBox>
+            <Label text="Contest Manager &amp; Controller" style="-fx-text-fill: white; -fx-font-size: 14;"/>
         </VBox>
     </top>
     
@@ -27,7 +28,7 @@
         <TabPane tabClosingPolicy="UNAVAILABLE">
             
             <!-- Tab 1: Manage Contests -->
-            <Tab text="Manage Contests">
+            <Tab text="📅 Manage Contests">
                 <VBox spacing="15" style="-fx-padding: 20;">
                     
                     <!-- Create Contest Section -->
@@ -70,7 +71,7 @@
                                 <TableColumn fx:id="contestNameColumn" text="Contest Name" prefWidth="200"/>
                                 <TableColumn fx:id="dateTimeColumn" text="Date & Time" prefWidth="150"/>
                                 <TableColumn fx:id="durationColumn" text="Duration (min)" prefWidth="120"/>
-                                <TableColumn fx:id="registrationsColumn" text="Registrations" prefWidth="120"/>
+                                <TableColumn fx:id="registrationsColumn" text="Participants" prefWidth="120"/>
                                 <TableColumn fx:id="statusColumn" text="Status" prefWidth="100"/>
                                 <TableColumn fx:id="actionsColumn" text="Actions" prefWidth="150"/>
                             </columns>
@@ -79,26 +80,26 @@
                 </VBox>
             </Tab>
             
-            <!-- Tab 2: Manage Registrations -->
-            <Tab text="Contest Registrations">
+            <!-- Tab 2: Contest Info -->
+            <Tab text="ℹ️ Contest Info">
                 <VBox spacing="15" style="-fx-padding: 20;">
                     
                     <HBox spacing="15" alignment="CENTER_LEFT">
                         <Label text="Select Contest:"/>
                         <ComboBox fx:id="contestSelector" promptText="Choose a contest" prefWidth="300"/>
-                        <Button text="View Registrations" onAction="#handleViewRegistrations" styleClass="primary-button"/>
+                        <Button text="View Details" onAction="#handleViewRegistrations" styleClass="primary-button"/>
                     </HBox>
                     
                     <VBox spacing="10" VBox.vgrow="ALWAYS">
                         <HBox spacing="20" alignment="CENTER_LEFT">
-                            <Label text="Registered Users" style="-fx-font-size: 18; -fx-font-weight: bold;"/>
-                            <Label fx:id="registrationCountLabel" text="(0 users)" style="-fx-font-size: 14; -fx-text-fill: #666;"/>
+                            <Label text="Contest Information" style="-fx-font-size: 18; -fx-font-weight: bold;"/>
+                            <Label fx:id="registrationCountLabel" text="(Select a contest)" style="-fx-font-size: 14; -fx-text-fill: #666;"/>
                         </HBox>
                         
                         <TableView fx:id="registrationsTable" VBox.vgrow="ALWAYS">
                             <columns>
                                 <TableColumn fx:id="usernameColumn" text="Username" prefWidth="200"/>
-                                <TableColumn fx:id="registeredAtColumn" text="Registered At" prefWidth="200"/>
+                                <TableColumn fx:id="registeredAtColumn" text="Info" prefWidth="200"/>
                                 <TableColumn fx:id="userActionsColumn" text="Actions" prefWidth="150"/>
                             </columns>
                         </TableView>
@@ -107,7 +108,7 @@
             </Tab>
             
             <!-- Tab 3: Statistics -->
-            <Tab text="Statistics">
+            <Tab text="📊 Statistics">
                 <VBox spacing="20" style="-fx-padding: 30;" alignment="CENTER">
                     
                     <Label text="System Statistics" style="-fx-font-size: 24; -fx-font-weight: bold;"/>
@@ -134,8 +135,8 @@
                         
                         <!-- Stat Card 4 -->
                         <VBox spacing="10" alignment="CENTER" style="-fx-background-color: #9C27B0; -fx-padding: 30; -fx-background-radius: 10; -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.2), 10, 0, 0, 2);" GridPane.columnIndex="1" GridPane.rowIndex="1">
-                            <Label text="Total Registrations" style="-fx-text-fill: white; -fx-font-size: 16;"/>
-                            <Label fx:id="totalRegistrationsLabel" text="0" style="-fx-text-fill: white; -fx-font-size: 48; -fx-font-weight: bold;"/>
+                            <Label text="System Status" style="-fx-text-fill: white; -fx-font-size: 16;"/>
+                            <Label fx:id="totalRegistrationsLabel" text="OK" style="-fx-text-fill: white; -fx-font-size: 48; -fx-font-weight: bold;"/>
                         </VBox>
                     </GridPane>
                     

@@ -119,13 +119,6 @@
                         </font>
                     </Button>
                     
-                    <!-- Admin Login Button -->
-                    <Button maxWidth="Infinity" onAction="#handleAdminLogin" prefHeight="40" style="-fx-background-color: #ff9800; -fx-text-fill: white; -fx-background-radius: 5; -fx-cursor: hand;" text="Admin Login">
-                        <font>
-                            <Font name="System Bold" size="14.0" />
-                        </font>
-                    </Button>
-                    
                     <Separator />
                     
                     <!-- Register link -->
@@ -164,9 +157,24 @@
                                 <Font size="14.0" />
                             </font>
                         </Label>
-                        <Label style="-fx-font-style: italic;" styleClass="info-text">
+                        <Separator>
+                            <VBox.margin>
+                                <Insets bottom="5" top="5" />
+                            </VBox.margin>
+                        </Separator>
+                        <Label styleClass="info-title" text="🔐 Admin Login">
                             <font>
-                                <Font size="11" />
+                                <Font name="System Bold" size="15.0" />
+                            </font>
+                        </Label>
+                        <Label styleClass="info-text" text="Username: admin">
+                            <font>
+                                <Font size="14.0" />
+                            </font>
+                        </Label>
+                        <Label styleClass="info-text" text="Password: admin123">
+                            <font>
+                                <Font size="14.0" />
                             </font>
                         </Label>
                     </VBox>
