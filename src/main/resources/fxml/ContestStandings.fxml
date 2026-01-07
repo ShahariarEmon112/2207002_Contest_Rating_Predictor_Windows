@@ -40,7 +40,7 @@
         <Button text="Refresh" fx:id="refreshButton" onAction="#handleRefresh" 
                 styleClass="secondary-button"/>
         <Button text="Generate Contest Results" fx:id="generateContestButton" 
-                onAction="#handleGenerateContest" styleClass="primary-button"/>
+                onAction="#handleGenerateContest" styleClass="primary-button" visible="false"/>
     </HBox>
     
     <!-- Contest Info -->
@@ -60,12 +60,25 @@
         </Label>
     </VBox>
     
-    <!-- Instructions -->
-    <HBox styleClass="info-banner">
+    <!-- Instructions (Admin Only) -->
+    <HBox fx:id="instructionsBanner" styleClass="info-banner" visible="false">
         <padding>
             <Insets top="10" right="15" bottom="10" left="15"/>
         </padding>
-        <Label text="💡 Tip: Double-click on 'Solved' or 'Penalty' cells to edit values. Click 'Generate Contest Results' to calculate rankings and ratings." 
+        <Label text="💡 Admin Mode: Double-click on 'Solved' or 'Penalty' cells to edit values. Click 'Generate Contest Results' to calculate rankings and ratings." 
+               wrapText="true" styleClass="info-text">
+            <font>
+                <Font size="12"/>
+            </font>
+        </Label>
+    </HBox>
+    
+    <!-- User View Info -->
+    <HBox fx:id="userInfoBanner" styleClass="info-banner">
+        <padding>
+            <Insets top="10" right="15" bottom="10" left="15"/>
+        </padding>
+        <Label text="📊 View contest standings and your position. Register for upcoming contests using the 'Register Me' button." 
                wrapText="true" styleClass="info-text">
             <font>
                 <Font size="12"/>

@@ -256,7 +256,10 @@ public class AdminDashboardController {
             boolean success = contestDB.saveContestWithAdmin(contest);
             
             if (success) {
-                contestStatusLabel.setText("✓ Contest created successfully!");
+                // Auto-register the 30 default users for this contest
+                autoRegisterDefaultUsers(contestId);
+                
+                contestStatusLabel.setText("✓ Contest created with 30 default participants!");
                 contestStatusLabel.setStyle("-fx-text-fill: #4CAF50;");
                 handleClearForm();
                 loadContests();
@@ -274,6 +277,32 @@ public class AdminDashboardController {
         }
     }
     
+    /**
+     * Auto-register the 30 default users (user001-user030) for a new contest
+     */
+    private void autoRegisterDefaultUsers(String contestId) {
+        DatabaseManager dbManager = DatabaseManager.getInstance();
+        UserDatabase userDB = UserDatabase.getInstance();
+        
+        for (int i = 1; i <= 30; i++) {
+            String username = String.format("user%03d", i);
+            
+            // Check if user exists, get their rating
+            User user = userDB.getUser(username);
+            int rating = (user != null) ? user.getCurrentRating() : 1200;
+            
+            // Create participant with initial values
+            Participant participant = new Participant(username, rating, 0, 0);
+            participant.setRank(i);
+            
+            // Register user for contest and save as participant
+            dbManager.registerUserForContest(contestId, username);
+            dbManager.saveParticipant(contestId, participant);
+        }
+        
+        System.out.println("Auto-registered 30 default users for contest: " + contestId);
+    }
+    
     @FXML
     private void handleClearForm() {
         contestIdField.clear();
@@ -286,10 +315,17 @@ public class AdminDashboardController {
     
     @FXML
     private void handleLoadParticipants() {
-        selectedContestId = participantContestSelector.getValue();
-        if (selectedContestId == null || selectedContestId.isEmpty()) {
+        String selected = participantContestSelector.getValue();
+        if (selected == null || selected.isEmpty()) {
             showAlert("Selection Required", "Please select a contest first");
             return;
+        }
+        
+        // Extract contest ID from the format "contestId - contestName"
+        if (selected.contains(" - ")) {
+            selectedContestId = selected.split(" - ")[0].trim();
+        } else {
+            selectedContestId = selected.trim();
         }
         
         try {

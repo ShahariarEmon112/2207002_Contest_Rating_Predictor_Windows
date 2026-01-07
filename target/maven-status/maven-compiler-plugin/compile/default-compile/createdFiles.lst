@@ -1,1 +1,7 @@
+com\contestpredictor\controller\ContestSearchController.class
+com\contestpredictor\controller\RatingPredictorController.class
+com\contestpredictor\controller\ContestSearchController$1.class
+com\contestpredictor\controller\PredictorController.class
+com\contestpredictor\controller\RegistrationController.class
 com\contestpredictor\Main.class
+com\contestpredictor\controller\RatingPredictorController$1.class

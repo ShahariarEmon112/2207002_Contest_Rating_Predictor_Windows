@@ -15,6 +15,7 @@ import javafx.scene.Scene;
 import javafx.scene.control.*;
 import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.scene.control.cell.TextFieldTableCell;
+import javafx.scene.layout.HBox;
 import javafx.stage.Stage;
 import javafx.util.converter.IntegerStringConverter;
 
@@ -25,7 +26,8 @@ import java.util.Optional;
 
 /**
  * Controller for managing contest standings
- * Allows viewing and updating participant solve counts and generating contest results
+ * Users can view standings and register for contests
+ * Admins can edit solve counts/penalty and generate contest results
  */
 public class ContestStandingsController {
     
@@ -36,6 +38,8 @@ public class ContestStandingsController {
     @FXML private Button refreshButton;
     @FXML private Button registerButton;
     @FXML private Button backButton;
+    @FXML private HBox instructionsBanner;
+    @FXML private HBox userInfoBanner;
     @FXML private TableView<Participant> standingsTable;
     @FXML private TableColumn<Participant, Integer> rankColumn;
     @FXML private TableColumn<Participant, String> usernameColumn;
@@ -54,43 +58,58 @@ public class ContestStandingsController {
         setupTable();
         loadContests();
         
-        // Hide register button if admin
+        // Initially hide admin controls
+        if (generateContestButton != null) {
+            generateContestButton.setVisible(false);
+        }
+        if (instructionsBanner != null) {
+            instructionsBanner.setVisible(false);
+        }
+        if (userInfoBanner != null) {
+            userInfoBanner.setVisible(true);
+        }
         if (registerButton != null) {
-            registerButton.setVisible(!isAdmin);
+            registerButton.setVisible(true);
         }
     }
     
     private void setupTable() {
-        // Make table editable
-        standingsTable.setEditable(true);
+        // Make table editable only for admin (will be set in setCurrentUser)
+        standingsTable.setEditable(false);
         
         // Setup columns
         rankColumn.setCellValueFactory(new PropertyValueFactory<>("rank"));
         usernameColumn.setCellValueFactory(new PropertyValueFactory<>("username"));
         currentRatingColumn.setCellValueFactory(new PropertyValueFactory<>("currentRating"));
         
-        // Make solved and penalty columns editable
+        // Solved and penalty columns - editable only for admin
         solvedColumn.setCellValueFactory(new PropertyValueFactory<>("problemsSolved"));
-        solvedColumn.setCellFactory(TextFieldTableCell.forTableColumn(new IntegerStringConverter()));
-        solvedColumn.setOnEditCommit(event -> {
-            Participant participant = event.getRowValue();
-            participant.setProblemsSolved(event.getNewValue());
-            updateParticipantInDatabase(participant);
-        });
-        
         penaltyColumn.setCellValueFactory(new PropertyValueFactory<>("totalPenalty"));
-        penaltyColumn.setCellFactory(TextFieldTableCell.forTableColumn(new IntegerStringConverter()));
-        penaltyColumn.setOnEditCommit(event -> {
-            Participant participant = event.getRowValue();
-            participant.setTotalPenalty(event.getNewValue());
-            updateParticipantInDatabase(participant);
-        });
         
         predictedRatingColumn.setCellValueFactory(new PropertyValueFactory<>("predictedRating"));
         ratingChangeColumn.setCellValueFactory(new PropertyValueFactory<>("ratingChange"));
-        
-        // Setup actions column for admin
+    }
+    
+    private void setupEditableColumns() {
+        // Only allow editing if admin
         if (isAdmin) {
+            standingsTable.setEditable(true);
+            
+            solvedColumn.setCellFactory(TextFieldTableCell.forTableColumn(new IntegerStringConverter()));
+            solvedColumn.setOnEditCommit(event -> {
+                Participant participant = event.getRowValue();
+                participant.setProblemsSolved(event.getNewValue());
+                updateParticipantInDatabase(participant);
+            });
+            
+            penaltyColumn.setCellFactory(TextFieldTableCell.forTableColumn(new IntegerStringConverter()));
+            penaltyColumn.setOnEditCommit(event -> {
+                Participant participant = event.getRowValue();
+                participant.setTotalPenalty(event.getNewValue());
+                updateParticipantInDatabase(participant);
+            });
+            
+            // Setup actions column for admin
             actionsColumn.setCellFactory(param -> new TableCell<>() {
                 private final Button removeBtn = new Button("Remove");
                 
@@ -112,6 +131,9 @@ public class ContestStandingsController {
                     }
                 }
             });
+        } else {
+            standingsTable.setEditable(false);
+            actionsColumn.setCellFactory(param -> new TableCell<>());
         }
     }
     
@@ -121,9 +143,10 @@ public class ContestStandingsController {
         
         ObservableList<String> contestNames = FXCollections.observableArrayList();
         for (Contest contest : contests) {
-            if (!contest.isPast()) {
-                contestNames.add(contest.getContestId() + " - " + contest.getContestName());
-            }
+            // Admin sees all contests (past and future)
+            // Users also see all contests but can only register for future ones
+            String status = contest.isPast() ? " [Past]" : " [Upcoming]";
+            contestNames.add(contest.getContestId() + " - " + contest.getContestName() + status);
         }
         
         contestSelector.setItems(contestNames);
@@ -140,6 +163,7 @@ public class ContestStandingsController {
         String selected = contestSelector.getValue();
         if (selected == null) return;
         
+        // Extract contest ID (before first " - ")
         String contestId = selected.split(" - ")[0];
         loadContestStandings(contestId);
     }
@@ -352,6 +376,15 @@ public class ContestStandingsController {
         }
         
         String contestId = selected.split(" - ")[0];
+        
+        // Check if this is a past contest
+        ContestDatabase contestDB = ContestDatabase.getInstance();
+        Contest contest = contestDB.getContestById(contestId);
+        if (contest != null && contest.isPast()) {
+            showAlert("Error", "Cannot register for past contests!");
+            return;
+        }
+        
         DatabaseManager dbManager = DatabaseManager.getInstance();
         
         // Check if already registered
@@ -390,17 +423,31 @@ public class ContestStandingsController {
             FXMLLoader loader;
             if (isAdmin) {
                 loader = new FXMLLoader(getClass().getResource("/fxml/AdminDashboard.fxml"));
+                Parent root = loader.load();
+                
+                // Set admin info for AdminDashboard
+                AdminDashboardController controller = loader.getController();
+                com.contestpredictor.data.AdminDatabase adminDB = com.contestpredictor.data.AdminDatabase.getInstance();
+                com.contestpredictor.model.Admin admin = adminDB.getAdminByUsername(currentUsername);
+                if (admin != null) {
+                    controller.setAdmin(admin);
+                }
+                
+                Stage stage = (Stage) backButton.getScene().getWindow();
+                Scene scene = new Scene(root, stage.getWidth(), stage.getHeight());
+                scene.getStylesheets().add(getClass().getResource("/css/styles.css").toExternalForm());
+                stage.setScene(scene);
+                stage.setTitle("Admin Dashboard - Contest Rating Predictor");
             } else {
                 loader = new FXMLLoader(getClass().getResource("/fxml/Profile.fxml"));
+                Parent root = loader.load();
+                
+                Stage stage = (Stage) backButton.getScene().getWindow();
+                Scene scene = new Scene(root, stage.getWidth(), stage.getHeight());
+                scene.getStylesheets().add(getClass().getResource("/css/styles.css").toExternalForm());
+                stage.setScene(scene);
+                stage.setTitle("Profile - Contest Rating Predictor");
             }
-            
-            Parent root = loader.load();
-            Stage stage = (Stage) backButton.getScene().getWindow();
-            
-            Scene scene = new Scene(root, stage.getWidth(), stage.getHeight());
-            scene.getStylesheets().add(getClass().getResource("/css/styles.css").toExternalForm());
-            
-            stage.setScene(scene);
         } catch (Exception e) {
             e.printStackTrace();
             showAlert("Error", "Failed to go back: " + e.getMessage());
@@ -410,12 +457,43 @@ public class ContestStandingsController {
     public void setCurrentUser(String username, boolean isAdmin) {
         this.currentUsername = username;
         this.isAdmin = isAdmin;
-        setupTable(); // Re-setup table with admin privileges
         
-        // Update register button visibility
-        if (registerButton != null) {
-            registerButton.setVisible(!isAdmin);
+        // Setup table columns with proper permissions
+        setupEditableColumns();
+        
+        // Update UI based on role
+        if (isAdmin) {
+            // Admin: Show edit controls, hide register button
+            if (generateContestButton != null) {
+                generateContestButton.setVisible(true);
+            }
+            if (instructionsBanner != null) {
+                instructionsBanner.setVisible(true);
+            }
+            if (userInfoBanner != null) {
+                userInfoBanner.setVisible(false);
+            }
+            if (registerButton != null) {
+                registerButton.setVisible(false);
+            }
+        } else {
+            // User: Hide edit controls, show register button
+            if (generateContestButton != null) {
+                generateContestButton.setVisible(false);
+            }
+            if (instructionsBanner != null) {
+                instructionsBanner.setVisible(false);
+            }
+            if (userInfoBanner != null) {
+                userInfoBanner.setVisible(true);
+            }
+            if (registerButton != null) {
+                registerButton.setVisible(true);
+            }
         }
+        
+        // Reload contests to refresh the view
+        loadContests();
     }
     
     private void showAlert(String title, String message) {

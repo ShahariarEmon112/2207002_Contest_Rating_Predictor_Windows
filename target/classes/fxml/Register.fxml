@@ -198,6 +198,13 @@
                             </font>
                         </Label>
                     </HBox>
+                    
+                    <!-- Go Back Button -->
+                    <Button maxWidth="Infinity" onAction="#handleBackToLogin" prefHeight="40" styleClass="secondary-button" text="← Go Back">
+                        <font>
+                            <Font name="System Bold" size="14.0" />
+                        </font>
+                    </Button>
                 </VBox>
             </VBox>
             </HBox>
