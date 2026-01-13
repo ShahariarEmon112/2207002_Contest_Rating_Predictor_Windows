@@ -2,12 +2,16 @@ package com.contestpredictor.controller;
 
 import com.contestpredictor.data.AdminDatabase;
 import com.contestpredictor.data.UserDatabase;
+import com.contestpredictor.data.UserDatabase.AuthResult;
+import javafx.application.Platform;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
+import javafx.scene.control.CheckBox;
 import javafx.scene.control.Label;
 import javafx.scene.control.PasswordField;
+import javafx.scene.control.ProgressIndicator;
 import javafx.scene.control.RadioButton;
 import javafx.scene.control.TextField;
 import javafx.scene.control.ToggleGroup;
@@ -39,7 +43,14 @@ public class RegistrationController {
     @FXML
     private RadioButton adminRadio;
     
+    @FXML
+    private CheckBox rememberMeCheckbox;
+    
+    @FXML
+    private ProgressIndicator loadingIndicator;
+    
     private ToggleGroup accountTypeGroup;
+    private UserDatabase userDB;
 
     @FXML
     private void handleRegister() {
@@ -51,14 +62,20 @@ public class RegistrationController {
         boolean isAdmin = adminRadio.isSelected();
 
         // Validate input fields
-        if (fullName.isEmpty() || username.isEmpty() || password.isEmpty() || confirmPassword.isEmpty()) {
-            showError("Please fill in all fields");
+        if (fullName.isEmpty() || password.isEmpty() || confirmPassword.isEmpty()) {
+            showError("Please fill in all required fields");
             return;
         }
         
-        // Validate email for admin
-        if (isAdmin && email.isEmpty()) {
-            showError("Email is required for admin registration");
+        // Email is now required for Firebase registration
+        if (email.isEmpty()) {
+            showError("Email is required for registration");
+            return;
+        }
+        
+        // Validate email format
+        if (!email.matches("^[A-Za-z0-9+_.-]+@(.+)$")) {
+            showError("Please enter a valid email address");
             return;
         }
 
@@ -68,18 +85,7 @@ public class RegistrationController {
             return;
         }
 
-        // Validate username (at least 4 characters, alphanumeric)
-        if (username.length() < 4) {
-            showError("Username must be at least 4 characters");
-            return;
-        }
-
-        if (!username.matches("^[a-zA-Z0-9_]+$")) {
-            showError("Username can only contain letters, numbers, and underscores");
-            return;
-        }
-
-        // Validate password (at least 6 characters)
+        // Validate password (at least 6 characters for Firebase)
         if (password.length() < 6) {
             showError("Password must be at least 6 characters");
             return;
@@ -90,37 +96,110 @@ public class RegistrationController {
             showError("Passwords do not match");
             return;
         }
+        
+        // Show loading indicator
+        if (loadingIndicator != null) {
+            loadingIndicator.setVisible(true);
+        }
+        messageLabel.setVisible(false);
 
         // Attempt to register the user
-        boolean success;
         if (isAdmin) {
+            // Admin registration (local only)
             AdminDatabase adminDB = AdminDatabase.getInstance();
-            success = adminDB.registerAdmin(username, password, fullName);
+            boolean success = adminDB.registerAdmin(username.isEmpty() ? extractUsername(email) : username, password, fullName);
+            if (loadingIndicator != null) {
+                loadingIndicator.setVisible(false);
+            }
             if (success) {
                 showSuccess("Admin account created successfully! Redirecting to login...");
+                navigateToLoginAfterDelay();
             } else {
                 showError("Admin username already exists. Please choose another one.");
             }
         } else {
-            UserDatabase userDB = UserDatabase.getInstance();
-            success = userDB.registerUser(username, password, fullName);
-            if (success) {
-                showSuccess("Account created successfully! Redirecting to login...");
-            } else {
-                showError("Username already exists. Please choose another one.");
-            }
-        }
-
-        if (success) {
-            // Navigate to login after a short delay
+            // User registration with Firebase
+            boolean rememberMe = rememberMeCheckbox != null && rememberMeCheckbox.isSelected();
+            
+            // Run in background thread
             new Thread(() -> {
-                try {
-                    Thread.sleep(1500);
-                    javafx.application.Platform.runLater(() -> handleBackToLogin());
-                } catch (InterruptedException e) {
-                    e.printStackTrace();
-                }
+                AuthResult result = userDB.registerWithFirebase(email, password, fullName, rememberMe);
+                
+                Platform.runLater(() -> {
+                    if (loadingIndicator != null) {
+                        loadingIndicator.setVisible(false);
+                    }
+                    
+                    if (result.isSuccess()) {
+                        showSuccess(result.getMessage() + " Logging you in...");
+                        // Navigate directly to profile since user is already logged in
+                        navigateToProfileAfterDelay();
+                    } else {
+                        showError(result.getMessage());
+                    }
+                });
             }).start();
+        }
+    }
+    
+    private String extractUsername(String email) {
+        if (email.contains("@")) {
+            return email.substring(0, email.indexOf("@"));
+        }
+        return email;
+    }
+    
+    private void navigateToLoginAfterDelay() {
+        new Thread(() -> {
+            try {
+                Thread.sleep(1500);
+                Platform.runLater(() -> handleBackToLogin());
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+        }).start();
+    }
+    
+    private void navigateToProfileAfterDelay() {
+        new Thread(() -> {
+            try {
+                Thread.sleep(1000);
+                Platform.runLater(() -> navigateToProfile());
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+        }).start();
+    }
+    
+    private void navigateToProfile() {
+        try {
+            FXMLLoader loader = new FXMLLoader(getClass().getResource("/fxml/Profile.fxml"));
+            Parent root = loader.load();
+            
+            Stage stage = (Stage) usernameField.getScene().getWindow();
+            
+            // Preserve window state
+            boolean wasFullScreen = stage.isFullScreen();
+            boolean wasMaximized = stage.isMaximized();
+            double currentWidth = stage.getWidth();
+            double currentHeight = stage.getHeight();
+            
+            Scene scene = new Scene(root, currentWidth, currentHeight);
+            scene.getStylesheets().add(getClass().getResource("/css/styles.css").toExternalForm());
+            
+            stage.setScene(scene);
+            stage.setTitle("Profile - Contest Rating Predictor");
+            
+            // Restore window state
+            if (wasMaximized) {
+                stage.setMaximized(true);
+            }
+            if (wasFullScreen) {
+                stage.setFullScreen(true);
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            showError("Error loading profile: " + e.getMessage());
         }
     }
 
@@ -159,35 +238,30 @@ public class RegistrationController {
 
     @FXML
     private void initialize() {
+        userDB = UserDatabase.getInstance();
+        
         // Setup account type toggle group
         accountTypeGroup = new ToggleGroup();
         contestantRadio.setToggleGroup(accountTypeGroup);
         adminRadio.setToggleGroup(accountTypeGroup);
         contestantRadio.setSelected(true); // Default to contestant
         
-        // Email field visibility based on account type
-        emailField.setVisible(false);
-        emailField.setManaged(false);
+        // Email field is now always visible for Firebase registration
+        emailField.setVisible(true);
+        emailField.setManaged(true);
         
-        accountTypeGroup.selectedToggleProperty().addListener((obs, oldVal, newVal) -> {
-            if (newVal == adminRadio) {
-                emailField.setVisible(true);
-                emailField.setManaged(true);
-            } else {
-                emailField.setVisible(false);
-                emailField.setManaged(false);
-            }
-        });
+        // Hide loading indicator initially
+        if (loadingIndicator != null) {
+            loadingIndicator.setVisible(false);
+        }
+        
+        // Set remember me checked by default
+        if (rememberMeCheckbox != null) {
+            rememberMeCheckbox.setSelected(true);
+        }
         
         // Add enter key handlers for smooth navigation
-        fullNameField.setOnAction(event -> usernameField.requestFocus());
-        usernameField.setOnAction(event -> {
-            if (emailField.isVisible()) {
-                emailField.requestFocus();
-            } else {
-                passwordField.requestFocus();
-            }
-        });
+        fullNameField.setOnAction(event -> emailField.requestFocus());
         emailField.setOnAction(event -> passwordField.requestFocus());
         passwordField.setOnAction(event -> confirmPasswordField.requestFocus());
         confirmPasswordField.setOnAction(event -> handleRegister());

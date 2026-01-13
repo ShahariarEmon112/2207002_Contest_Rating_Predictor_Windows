@@ -2,18 +2,21 @@
 
 <?import javafx.geometry.Insets?>
 <?import javafx.scene.control.Button?>
+<?import javafx.scene.control.CheckBox?>
 <?import javafx.scene.control.Label?>
 <?import javafx.scene.control.PasswordField?>
+<?import javafx.scene.control.ProgressIndicator?>
 <?import javafx.scene.control.RadioButton?>
 <?import javafx.scene.control.ScrollPane?>
 <?import javafx.scene.control.Separator?>
 <?import javafx.scene.control.TextField?>
 <?import javafx.scene.layout.BorderPane?>
 <?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.StackPane?>
 <?import javafx.scene.layout.VBox?>
 <?import javafx.scene.text.Font?>
 
-<BorderPane prefHeight="650" prefWidth="1000" styleClass="login-root" xmlns="http://javafx.com/javafx/25" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.contestpredictor.controller.RegistrationController">
+<BorderPane prefHeight="650" prefWidth="1000" styleClass="login-root" xmlns="http://javafx.com/javafx/17.0.2" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.contestpredictor.controller.RegistrationController">
     
     <center>
         <ScrollPane fitToHeight="true" fitToWidth="true" styleClass="scroll-pane">
@@ -127,9 +130,9 @@
                         </TextField>
                     </VBox>
                     
-                    <!-- Email Field (for Admin only) -->
+                    <!-- Email Field (for Firebase authentication) -->
                     <VBox fx:id="emailBox" spacing="8">
-                        <Label styleClass="field-label" text="Email (Required for Admin)">
+                        <Label styleClass="field-label" text="Email">
                             <font>
                                 <Font name="System Bold" size="15.0" />
                             </font>
@@ -176,12 +179,22 @@
                         </font>
                     </Label>
                     
-                    <!-- Register Button -->
-                    <Button maxWidth="Infinity" onAction="#handleRegister" prefHeight="45" styleClass="login-button" text="Create Account">
+                    <!-- Remember Me Checkbox -->
+                    <CheckBox fx:id="rememberMeCheckbox" selected="true" text="Keep me signed in">
                         <font>
-                            <Font name="System Bold" size="18.0" />
+                            <Font size="14" />
                         </font>
-                    </Button>
+                    </CheckBox>
+                    
+                    <!-- Register Button with Loading Indicator -->
+                    <StackPane>
+                        <Button fx:id="registerButton" maxWidth="Infinity" onAction="#handleRegister" prefHeight="45" styleClass="login-button" text="Create Account">
+                            <font>
+                                <Font name="System Bold" size="18.0" />
+                            </font>
+                        </Button>
+                        <ProgressIndicator fx:id="loadingIndicator" maxHeight="30" maxWidth="30" visible="false" />
+                    </StackPane>
                     
                     <Separator />
                     

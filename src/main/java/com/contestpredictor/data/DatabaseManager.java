@@ -49,15 +49,29 @@ public class DatabaseManager {
         try {
             Statement stmt = connection.createStatement();
 
-            // Users table
+            // Users table (with Firebase fields)
             stmt.execute("CREATE TABLE IF NOT EXISTS users (" +
                     "username TEXT PRIMARY KEY," +
                     "password TEXT NOT NULL," +
                     "full_name TEXT NOT NULL," +
                     "current_rating INTEGER NOT NULL," +
                     "contests_participated INTEGER NOT NULL," +
-                    "rating_history TEXT" + // Stored as comma-separated values
+                    "rating_history TEXT," + // Stored as comma-separated values
+                    "email TEXT," +
+                    "firebase_uid TEXT" +
                     ")");
+            
+            // Add email and firebase_uid columns if they don't exist (for existing databases)
+            try {
+                stmt.execute("ALTER TABLE users ADD COLUMN email TEXT");
+            } catch (SQLException e) {
+                // Column already exists, ignore
+            }
+            try {
+                stmt.execute("ALTER TABLE users ADD COLUMN firebase_uid TEXT");
+            } catch (SQLException e) {
+                // Column already exists, ignore
+            }
 
             // Admins table
             stmt.execute("CREATE TABLE IF NOT EXISTS admins (" +
@@ -207,10 +221,10 @@ public class DatabaseManager {
     }
 
     /**
-     * Save a user to the database
+     * Save a user to the database (with Firebase fields)
      */
     public void saveUser(User user) {
-        String sql = "INSERT OR REPLACE INTO users (username, password, full_name, current_rating, contests_participated, rating_history) VALUES (?, ?, ?, ?, ?, ?)";
+        String sql = "INSERT OR REPLACE INTO users (username, password, full_name, current_rating, contests_participated, rating_history, email, firebase_uid) VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
         try (PreparedStatement pstmt = connection.prepareStatement(sql)) {
             pstmt.setString(1, user.getUsername());
             pstmt.setString(2, user.getPassword());
@@ -227,6 +241,8 @@ public class DatabaseManager {
                 }
             }
             pstmt.setString(6, history.toString());
+            pstmt.setString(7, user.getEmail());
+            pstmt.setString(8, user.getFirebaseUid());
             
             pstmt.executeUpdate();
         } catch (SQLException e) {
@@ -235,7 +251,7 @@ public class DatabaseManager {
     }
 
     /**
-     * Load a user from the database
+     * Load a user from the database (with Firebase fields)
      */
     public User loadUser(String username) {
         String sql = "SELECT * FROM users WHERE username = ?";
@@ -260,6 +276,14 @@ public class DatabaseManager {
                     for (String rating : ratings) {
                         user.getRatingHistory().add(Integer.parseInt(rating.trim()));
                     }
+                }
+                
+                // Load Firebase fields (handle null for older databases)
+                try {
+                    user.setEmail(rs.getString("email"));
+                    user.setFirebaseUid(rs.getString("firebase_uid"));
+                } catch (SQLException e) {
+                    // Columns might not exist in older databases
                 }
                 
                 return user;

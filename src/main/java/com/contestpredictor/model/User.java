@@ -10,6 +10,10 @@ public class User {
     private int contestsParticipated;
     private String fullName;
     private List<Integer> ratingHistory;
+    
+    // Firebase-related fields
+    private String email;
+    private String firebaseUid;
 
     public User(String username, String password, int currentRating, int contestsParticipated, String fullName) {
         this.username = username;
@@ -69,5 +73,22 @@ public class User {
     public void addRatingToHistory(int rating) {
         this.ratingHistory.add(rating);
         this.currentRating = rating;
+    }
+    
+    // Firebase-related getters and setters
+    public String getEmail() {
+        return email;
+    }
+    
+    public void setEmail(String email) {
+        this.email = email;
+    }
+    
+    public String getFirebaseUid() {
+        return firebaseUid;
+    }
+    
+    public void setFirebaseUid(String firebaseUid) {
+        this.firebaseUid = firebaseUid;
     }
 }

@@ -360,7 +360,7 @@ public class AdminManageLeaderboardController{
         confirm.setHeaderText("Delete Entry");
         confirm.setContentText("Are you sure you want to delete the entry for '" + selected.getUsername() + "'?");
         
-        if (confirm.showAndWait().orElse(Alert.AlertType.CANCEL.name().equals("CANCEL") ? ButtonType.CANCEL : ButtonType.OK) == ButtonType.OK) {
+        if (confirm.showAndWait().orElse(ButtonType.CANCEL) == ButtonType.OK) {
             if (leaderboardDB.deleteLeaderboardEntry(selectedContest.getContestId(), selected.getUsername())) {
                 showSuccess("Entry for '" + selected.getUsername() + "' deleted successfully");
                 clearFields();

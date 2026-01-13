@@ -177,6 +177,16 @@
     -fx-text-fill: #A855F7;
 }
 
+.forgot-password-link {
+    -fx-text-fill: #60A5FA;
+    -fx-cursor: hand;
+    -fx-underline: true;
+}
+
+.forgot-password-link:hover {
+    -fx-text-fill: #93C5FD;
+}
+
 .admin-link {
     -fx-text-fill: #F59E0B;
     -fx-cursor: hand;
